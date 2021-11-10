@@ -1,0 +1,178 @@
+#include <Servo.h>
+#include <LiquidCrystal.h>
+
+#define NO_BOTON 1023
+#define BOTON_SEG 512
+#define BOTON_MIN 682
+#define BOTON_HORA 767
+
+LiquidCrystal lcd(2,3,A0,A1,A2,A3);
+
+Servo servoSegundos;
+Servo servoMinutos;
+Servo servoHoras;
+
+int segundos = 0;
+int minutos = 0;
+int horas = 0;
+
+int posicionServoSegundos = 0;
+int posicionServoMinutos = 0;
+int posicionServoHoras = 0;
+
+unsigned long millisAntes = 0;
+
+int botonAntes = NO_BOTON;
+int botonApretado;
+
+unsigned long millisAhora;
+
+void setup()
+{
+  servoSegundos.attach(9);
+  servoMinutos.attach(10);
+  servoHoras.attach(11);
+  lcd.begin(16, 2);
+  lcd.print("    Horario");
+  lcd.setCursor(0,1);
+  lcd.print("    00:00:00");
+}
+
+void loop()
+{
+  	millisAhora = millis();
+  
+    botonApretado = LeerBoton();
+	
+  	Horario(); /*Se uso un define para cada boton segun los volts que circula en
+    cada uno de ellos y asi, poder sumar en 1 al lugar que corresponda */
+  
+  	Antirrebote(); /*Se utilizo el antirrebote para cuando el pulsador se aprieta una sola vez,
+    sin importar que se mantenga apretado*/
+  
+  	ConfiguracionHorario(); /*Se asignaron los parametros y ubicacion de los 
+    segundos, minutos y horas a mostrar en el led*/
+
+    PosicionServos(); /*Se utilizo esta funcion para configurar el movimiento
+    de los servos segun al tiempo al que estaban asignados*/
+
+    delay(10);
+}
+
+int LeerBoton()
+{
+  int botonApretado = NO_BOTON;
+  int botonAhora = analogRead(A4);
+  
+  if(botonAhora != botonAntes)
+  {
+    if(botonAhora > BOTON_SEG - 10 && botonAhora < BOTON_SEG + 10)
+    {
+      botonApretado = BOTON_SEG;
+    }
+
+    else if(botonAhora > BOTON_MIN - 10 && botonAhora < BOTON_MIN + 10)
+    {
+      botonApretado = BOTON_MIN;
+    }
+
+    else if(botonAhora > BOTON_HORA - 10 && botonAhora < BOTON_HORA + 10)
+    {
+      botonApretado = BOTON_HORA;
+    }
+  }
+  botonAntes = botonAhora;
+  
+  return botonApretado;
+}
+
+int Horario()
+{
+	if(botonApretado == BOTON_SEG)
+    {
+      segundos++;
+    }
+    else if(botonApretado == BOTON_MIN)
+    {
+      minutos++;
+    }
+    else if(botonApretado == BOTON_HORA)
+    {
+      horas++;
+    }
+}
+
+int Antirrebote()
+{
+  if(millisAhora - millisAntes > 1000)
+    {
+      segundos++;
+      millisAntes = millisAhora;
+    }
+}
+
+int ConfiguracionHorario()
+{
+  if(segundos > 59)
+    {
+      segundos = 0;
+      minutos++;
+    }
+
+    if(segundos < 10)
+    {
+      lcd.setCursor(10,1);
+      lcd.print("0");
+      lcd.print(segundos);
+    }
+    else
+    {
+      lcd.setCursor(10,1);
+      lcd.print(segundos);
+    }
+
+    if(minutos > 59)
+    {
+      minutos = 0;
+      horas++;
+    }
+    if(minutos < 10)
+    {
+      lcd.setCursor(7,1);
+      lcd.print("0");
+      lcd.print(minutos);
+    }
+    else
+    {
+      lcd.setCursor(7,1);
+      lcd.print(minutos);
+    }
+
+    if(horas > 23)
+    {
+      horas = 0;
+    }
+    if(horas < 10)
+    {
+      lcd.setCursor(4,1);
+      lcd.print("0");
+      lcd.print(horas);
+    }
+    else
+    {
+      lcd.setCursor(4,1);
+      lcd.print(horas);
+    }
+}
+
+int PosicionServos()
+{
+  	posicionServoSegundos = map(segundos, 0, 59,0,180);
+    servoSegundos.write(posicionServoSegundos);
+
+    posicionServoMinutos = map(minutos, 0, 59,0,180);
+    servoMinutos.write(posicionServoMinutos);
+
+    posicionServoHoras = map(horas, 0, 23,0,180);
+    servoHoras.write(posicionServoHoras);
+}
